@@ -77,6 +77,19 @@
       outline-offset: 8px;
     }
 
+    .title-word {
+      white-space: nowrap;
+    }
+
+    .title-letter {
+      display: inline-block;
+    }
+
+    .intro a:hover .title-letter,
+    .intro a:focus-visible .title-letter {
+      text-decoration: underline;
+    }
+
     .collection {
       box-sizing: border-box;
       width: min(48rem, calc(100% - 2rem));
@@ -135,8 +148,8 @@
     <header class="intro">
       <h1>
         <a href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III">
-          Voyaging through<br>
-          <i>strange eons of thought...</i>
+          <span class="title-line">Voyaging through</span><br>
+          <i class="title-line">strange eons of thought...</i>
         </a>
       </h1>
     </header>
@@ -162,14 +175,98 @@
   <script>
     const intro = document.querySelector(".intro");
     const title = intro.querySelector("h1");
+    const titleLink = title.querySelector("a");
+    const reducedTitleMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const letterAnimations = new Map();
     let titleFrame = null;
+    let titleProgress = 0;
+    let titleLetters;
+
+    function prepareTitleLetters() {
+      const lines = Array.from(titleLink.querySelectorAll(".title-line"));
+      titleLink.setAttribute("aria-label", lines.map(line => line.textContent).join(" "));
+      const letters = [];
+
+      for (const line of lines) {
+        const content = document.createDocumentFragment();
+        for (const part of line.textContent.split(/(\s+)/)) {
+          if (!part.trim()) {
+            content.append(part);
+            continue;
+          }
+
+          const word = document.createElement("span");
+          word.className = "title-word";
+          for (const character of part) {
+            if (!/\p{L}/u.test(character)) {
+              word.append(character);
+              continue;
+            }
+
+            const letter = document.createElement("span");
+            letter.className = "title-letter";
+            letter.textContent = character;
+            word.append(letter);
+            letters.push(letter);
+          }
+          content.append(word);
+        }
+        line.setAttribute("aria-hidden", "true");
+        line.replaceChildren(content);
+      }
+
+      return letters;
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function scheduleTremble(letter, delay) {
+      const resting = { transform: "translate(0, 0)" };
+      const keyframes = [resting];
+      const shakes = Math.floor(randomBetween(3, 6));
+
+      for (let shake = 0; shake < shakes; shake++) {
+        const direction = randomBetween(0, Math.PI * 2);
+        const distance = randomBetween(0.018, 0.05);
+        const x = (Math.cos(direction) * distance).toFixed(4);
+        const y = (Math.sin(direction) * distance).toFixed(4);
+        keyframes.push({ transform: `translate(${x}em, ${y}em)` });
+      }
+
+      keyframes.push(resting);
+      const animation = letter.animate(keyframes, { delay, duration: randomBetween(180, 460) });
+      letterAnimations.set(letter, animation);
+      animation.onfinish = () => {
+        if (letterAnimations.get(letter) === animation) {
+          scheduleTremble(letter, randomBetween(450, 2550));
+        }
+      };
+    }
+
+    function syncTitleMotion() {
+      if (typeof titleLink.animate !== "function") return;
+      if (titleProgress === 1 || reducedTitleMotion.matches || document.hidden) {
+        for (const animation of letterAnimations.values()) animation.cancel();
+        letterAnimations.clear();
+        return;
+      }
+      if (letterAnimations.size) return;
+
+      titleLetters ??= prepareTitleLetters();
+      for (const letter of titleLetters) {
+        scheduleTremble(letter, randomBetween(100, 1900));
+      }
+    }
 
     function updateTitle() {
       titleFrame = null;
-      const progress = Math.max(0, Math.min(1, window.scrollY / (intro.offsetHeight * 0.5)));
-      title.style.setProperty("--title-scale", 1 - progress * 0.58);
-      title.style.setProperty("--title-opacity", Math.min(1, (1 - progress) / 0.6));
-      title.style.setProperty("--title-pointer-events", progress === 1 ? "none" : "auto");
+      titleProgress = Math.max(0, Math.min(1, window.scrollY / (intro.offsetHeight * 0.5)));
+      title.style.setProperty("--title-scale", 1 - titleProgress * 0.58);
+      title.style.setProperty("--title-opacity", Math.min(1, (1 - titleProgress) / 0.6));
+      title.style.setProperty("--title-pointer-events", titleProgress === 1 ? "none" : "auto");
+      syncTitleMotion();
     }
 
     function scheduleTitleUpdate() {
@@ -178,6 +275,8 @@
 
     window.addEventListener("scroll", scheduleTitleUpdate, { passive: true });
     window.addEventListener("resize", scheduleTitleUpdate);
+    document.addEventListener("visibilitychange", syncTitleMotion);
+    reducedTitleMotion.addEventListener("change", syncTitleMotion);
     updateTitle();
   </script>
 </body>
