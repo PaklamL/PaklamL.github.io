@@ -76,6 +76,7 @@
 
     .title-letter {
       display: inline-block;
+      pointer-events: none;
     }
 
     .collection {
@@ -169,7 +170,7 @@
     let titleFrame = null;
     let titleProgress = 0;
     let titleLetters;
-    let titlePlaybackRate = 1;
+    let titleHovered = false;
 
     function prepareTitleLetters() {
       const lines = Array.from(titleLink.querySelectorAll(".title-line"));
@@ -212,22 +213,29 @@
     }
 
     function scheduleTremble(letter, delay) {
-      const resting = { transform: "translate(0, 0)" };
-      const keyframes = [resting];
+      const keyframes = [];
+      const amplitude = titleHovered ? 2 : 1;
       const shakes = Math.floor(randomBetween(3, 6));
 
       for (let shake = 0; shake < shakes; shake++) {
         const direction = randomBetween(0, Math.PI * 2);
-        const distance = randomBetween(0.018, 0.05);
+        const distance = randomBetween(0.018, 0.05) * amplitude;
         const x = (Math.cos(direction) * distance).toFixed(4);
         const y = (Math.sin(direction) * distance).toFixed(4);
         keyframes.push({ transform: `translate(${x}em, ${y}em)` });
       }
 
-      keyframes.push(resting);
-      const animation = letter.animate(keyframes, { delay, duration: randomBetween(180, 460) });
-      animation.playbackRate = titlePlaybackRate;
+      if (!titleHovered) keyframes.unshift({ transform: "translate(0, 0)" });
+      keyframes.push(keyframes[0]);
+      const animation = letter.animate(keyframes, {
+        delay,
+        duration: randomBetween(180, 460),
+        iterations: titleHovered ? Infinity : 1
+      });
+      animation.playbackRate = titleHovered ? 3 : 1;
       letterAnimations.set(letter, animation);
+      if (titleHovered) return;
+
       animation.onfinish = () => {
         if (letterAnimations.get(letter) === animation) {
           scheduleTremble(letter, randomBetween(450, 2550));
@@ -235,26 +243,31 @@
       };
     }
 
-    function updateTitlePlaybackRate(event) {
-      if (event.pointerType === "touch") return;
-      titlePlaybackRate = event.type === "pointerenter" ? 3 : 1;
+    function stopTitleMotion() {
       for (const animation of letterAnimations.values()) {
-        animation.updatePlaybackRate(titlePlaybackRate);
+        animation.cancel();
       }
+      letterAnimations.clear();
+    }
+
+    function updateTitleHover(event) {
+      if (event.pointerType === "touch") return;
+      titleHovered = event.type === "pointerenter";
+      stopTitleMotion();
+      syncTitleMotion();
     }
 
     function syncTitleMotion() {
       if (typeof titleLink.animate !== "function") return;
       if (titleProgress === 1 || reducedTitleMotion.matches || document.hidden) {
-        for (const animation of letterAnimations.values()) animation.cancel();
-        letterAnimations.clear();
+        stopTitleMotion();
         return;
       }
       if (letterAnimations.size) return;
 
       titleLetters ??= prepareTitleLetters();
       for (const letter of titleLetters) {
-        scheduleTremble(letter, randomBetween(100, 1900));
+        scheduleTremble(letter, titleHovered ? 0 : randomBetween(100, 1900));
       }
     }
 
@@ -275,8 +288,8 @@
     window.addEventListener("resize", scheduleTitleUpdate);
     document.addEventListener("visibilitychange", syncTitleMotion);
     reducedTitleMotion.addEventListener("change", syncTitleMotion);
-    titleLink.addEventListener("pointerenter", updateTitlePlaybackRate);
-    titleLink.addEventListener("pointerleave", updateTitlePlaybackRate);
+    titleLink.addEventListener("pointerenter", updateTitleHover);
+    titleLink.addEventListener("pointerleave", updateTitleHover);
     updateTitle();
   </script>
 </body>
