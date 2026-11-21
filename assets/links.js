@@ -5,10 +5,11 @@
   const letterPattern = /\p{L}/u;
 
   function prepareLetters(link) {
+    const characterPattern = letterPattern.test(link.textContent) ? letterPattern : /[\p{N}\p{P}]/u;
     const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         const hidden = node.parentElement.closest("svg, script, style, [hidden], [aria-hidden='true']");
-        return !hidden && letterPattern.test(node.data)
+        return !hidden && characterPattern.test(node.data)
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_REJECT;
       }
@@ -33,7 +34,7 @@
         const word = document.createElement("span");
         word.className = "tremble-word";
         for (const character of part) {
-          if (!letterPattern.test(character)) {
+          if (!characterPattern.test(character)) {
             word.append(character);
             continue;
           }

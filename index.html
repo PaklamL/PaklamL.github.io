@@ -35,8 +35,20 @@
     }
 
     .intro a {
-      display: inline-block;
       color: inherit;
+    }
+
+    .poem-source {
+      padding-inline-end: 0.25em;
+      margin-inline-end: -0.25em;
+    }
+
+    .poem-source sup {
+      margin-inline-start: 0.12em;
+      font-size: 0.45em;
+      font-style: normal;
+      letter-spacing: 0;
+      line-height: 0;
     }
 
     .intro a:focus-visible {
@@ -48,6 +60,7 @@
       min-height: 55vh;
       min-height: 55svh;
       margin: 0 auto clamp(2rem, 8vh, 5rem);
+      scroll-margin-block-start: 1rem;
     }
 
     .collection ul {
@@ -66,6 +79,12 @@
       font: 400 1.35rem / 1.25 Georgia, serif;
     }
 
+    @media (prefers-reduced-motion: no-preference) {
+      html {
+        scroll-behavior: smooth;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .intro h1 {
         transform: none;
@@ -81,19 +100,21 @@
   <main>
     <header class="intro">
       <h1>
-        <a href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III" data-idle-tremble>
+        <a href="#collection" data-idle-tremble>
           Voyaging through<br>
-          <i>strange eons of thought...</i>
-        </a>
+          <i>strange eons of thought</i></a><a
+            class="poem-source"
+            href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III"
+            aria-label="Read The Prelude, Book III on Wikisource"><i><sup>[1]</sup>...</i></a>
       </h1>
     </header>
 
-    <section class="reading-panel collection" aria-labelledby="collection-title">
+    <section id="collection" class="reading-panel collection" aria-labelledby="collection-title" tabindex="-1">
       <h2 id="collection-title">what is happening?</h2>
       <ul role="list">
         <li>
           <h3><a href="./notes/what-did-they-say/index.html">What did they say???</a></h3>
-          <p>I heard random things from people</p>
+          <p>I heard a few random things from people</p>
         </li>
         <li>
           <h3>Music for a rainy afternoon</h3>
@@ -109,7 +130,7 @@
   <script>
     const intro = document.querySelector(".intro");
     const title = intro.querySelector("h1");
-    const titleLink = title.querySelector("a");
+    const titleLink = title.querySelector("[data-idle-tremble]");
     let titleFrame = null;
 
     function updateTitle() {
