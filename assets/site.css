@@ -91,3 +91,12 @@ a[href]:focus-visible {
   margin-top: 2rem;
   font: 1rem / 1.6 system-ui, sans-serif;
 }
+
+.quote-note header {
+  margin-bottom: 1.75rem;
+}
+
+.quote-note h1 {
+  margin-bottom: 0.65rem;
+  text-wrap: balance;
+}
