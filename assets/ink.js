@@ -1,5 +1,9 @@
 (() => {
-  const canvas = document.getElementById("ink");
+  const canvas = document.createElement("canvas");
+  canvas.id = "ink";
+  canvas.hidden = true;
+  canvas.setAttribute("aria-hidden", "true");
+  document.body.prepend(canvas);
   const gl = canvas.getContext("webgl", {
     alpha: false,
     antialias: false,

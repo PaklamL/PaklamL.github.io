@@ -4,33 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>what is this place?</title>
+  <link rel="stylesheet" href="./assets/site.css">
   <style>
-    :root {
-      color-scheme: dark;
-    }
-
-    body {
-      min-height: 100vh;
-      min-height: 100svh;
-      margin: 0;
-      isolation: isolate;
-      color: #fff;
-      background:
-        radial-gradient(ellipse at 52% 48%, #34564570, transparent 45%),
-        radial-gradient(ellipse at 14% 80%, #40755a, transparent 60%),
-        radial-gradient(ellipse at 88% 20%, #6e9c71, transparent 55%),
-        linear-gradient(145deg, #b9d8ba, #8fbba0 55%, #c5dbaf);
-    }
-
-    #ink {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
     .intro {
       display: grid;
       min-height: 100vh;
@@ -62,7 +37,6 @@
     .intro a {
       display: inline-block;
       color: inherit;
-      text-decoration: none;
     }
 
     .intro a:focus-visible {
@@ -70,33 +44,10 @@
       outline-offset: 8px;
     }
 
-    .title-word {
-      white-space: nowrap;
-    }
-
-    .title-letter {
-      display: inline-block;
-      pointer-events: none;
-    }
-
     .collection {
-      box-sizing: border-box;
-      width: min(48rem, calc(100% - 2rem));
       min-height: 55vh;
       min-height: 55svh;
       margin: 0 auto clamp(2rem, 8vh, 5rem);
-      padding: clamp(1.5rem, 6vw, 4rem);
-      border: 1px solid #d7efdd50;
-      border-radius: 1.25rem;
-      background: #16372eed;
-      color: #f5fbf5;
-      box-shadow: 0 1.25rem 4rem #112c2345;
-    }
-
-    .collection h2 {
-      margin: 0 0 1.75rem;
-      font: 400 clamp(2rem, 5vw, 3.25rem) / 1.1 Georgia, serif;
-      letter-spacing: -0.03em;
     }
 
     .collection ul {
@@ -115,12 +66,6 @@
       font: 400 1.35rem / 1.25 Georgia, serif;
     }
 
-    .collection p {
-      margin: 0;
-      color: #d2e7d8;
-      font: 1rem / 1.6 system-ui, sans-serif;
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .intro h1 {
         transform: none;
@@ -129,21 +74,21 @@
       }
     }
   </style>
-  <script src="./ink.js" defer></script>
+  <script src="./assets/ink.js" defer></script>
+  <script src="./assets/links.js" defer></script>
 </head>
 <body>
-  <canvas id="ink" aria-hidden="true" hidden></canvas>
   <main>
     <header class="intro">
       <h1>
-        <a href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III">
-          <span class="title-line">Voyaging through</span><br>
-          <i class="title-line">strange eons of thought...</i>
+        <a href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III" data-idle-tremble>
+          Voyaging through<br>
+          <i>strange eons of thought...</i>
         </a>
       </h1>
     </header>
 
-    <section class="collection" aria-labelledby="collection-title">
+    <section class="reading-panel collection" aria-labelledby="collection-title">
       <h2 id="collection-title">what is happening?</h2>
       <ul role="list">
         <li>
@@ -155,7 +100,7 @@
           <p>A few slow songs for watching the rain run down the window.</p>
         </li>
         <li>
-          <h3>A small experiment</h3>
+          <h3><a href="./notes/ink/index.html">A small experiment</a></h3>
           <p>A corner for little browser sketches, like the ink moving behind this page.</p>
         </li>
       </ul>
@@ -165,119 +110,15 @@
     const intro = document.querySelector(".intro");
     const title = intro.querySelector("h1");
     const titleLink = title.querySelector("a");
-    const reducedTitleMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const letterAnimations = new Map();
     let titleFrame = null;
-    let titleProgress = 0;
-    let titleLetters;
-    let titleHovered = false;
-
-    function prepareTitleLetters() {
-      const lines = Array.from(titleLink.querySelectorAll(".title-line"));
-      titleLink.setAttribute("aria-label", lines.map(line => line.textContent).join(" "));
-      const letters = [];
-
-      for (const line of lines) {
-        const content = document.createDocumentFragment();
-        for (const part of line.textContent.split(/(\s+)/)) {
-          if (!part.trim()) {
-            content.append(part);
-            continue;
-          }
-
-          const word = document.createElement("span");
-          word.className = "title-word";
-          for (const character of part) {
-            if (!/\p{L}/u.test(character)) {
-              word.append(character);
-              continue;
-            }
-
-            const letter = document.createElement("span");
-            letter.className = "title-letter";
-            letter.textContent = character;
-            word.append(letter);
-            letters.push(letter);
-          }
-          content.append(word);
-        }
-        line.setAttribute("aria-hidden", "true");
-        line.replaceChildren(content);
-      }
-
-      return letters;
-    }
-
-    function randomBetween(min, max) {
-      return min + Math.random() * (max - min);
-    }
-
-    function scheduleTremble(letter, delay) {
-      const keyframes = [];
-      const amplitude = titleHovered ? 2 : 1;
-      const shakes = Math.floor(randomBetween(3, 6));
-
-      for (let shake = 0; shake < shakes; shake++) {
-        const direction = randomBetween(0, Math.PI * 2);
-        const distance = randomBetween(0.018, 0.05) * amplitude;
-        const x = (Math.cos(direction) * distance).toFixed(4);
-        const y = (Math.sin(direction) * distance).toFixed(4);
-        keyframes.push({ transform: `translate(${x}em, ${y}em)` });
-      }
-
-      if (!titleHovered) keyframes.unshift({ transform: "translate(0, 0)" });
-      keyframes.push(keyframes[0]);
-      const animation = letter.animate(keyframes, {
-        delay,
-        duration: randomBetween(180, 460),
-        iterations: titleHovered ? Infinity : 1
-      });
-      animation.playbackRate = titleHovered ? 3 : 1;
-      letterAnimations.set(letter, animation);
-      if (titleHovered) return;
-
-      animation.onfinish = () => {
-        if (letterAnimations.get(letter) === animation) {
-          scheduleTremble(letter, randomBetween(450, 2550));
-        }
-      };
-    }
-
-    function stopTitleMotion() {
-      for (const animation of letterAnimations.values()) {
-        animation.cancel();
-      }
-      letterAnimations.clear();
-    }
-
-    function updateTitleHover(event) {
-      if (event.pointerType === "touch") return;
-      titleHovered = event.type === "pointerenter";
-      stopTitleMotion();
-      syncTitleMotion();
-    }
-
-    function syncTitleMotion() {
-      if (typeof titleLink.animate !== "function") return;
-      if (titleProgress === 1 || reducedTitleMotion.matches || document.hidden) {
-        stopTitleMotion();
-        return;
-      }
-      if (letterAnimations.size) return;
-
-      titleLetters ??= prepareTitleLetters();
-      for (const letter of titleLetters) {
-        scheduleTremble(letter, titleHovered ? 0 : randomBetween(100, 1900));
-      }
-    }
 
     function updateTitle() {
       titleFrame = null;
-      titleProgress = Math.max(0, Math.min(1, window.scrollY / (intro.offsetHeight * 0.5)));
-      title.style.setProperty("--title-scale", 1 - titleProgress * 0.58);
-      title.style.setProperty("--title-opacity", Math.min(1, (1 - titleProgress) / 0.6));
-      title.style.setProperty("--title-pointer-events", titleProgress === 1 ? "none" : "auto");
-      syncTitleMotion();
+      const progress = Math.max(0, Math.min(1, window.scrollY / (intro.offsetHeight * 0.5)));
+      title.style.setProperty("--title-scale", 1 - progress * 0.58);
+      title.style.setProperty("--title-opacity", Math.min(1, (1 - progress) / 0.6));
+      title.style.setProperty("--title-pointer-events", progress === 1 ? "none" : "auto");
+      titleLink.toggleAttribute("data-tremble-hidden", progress === 1);
     }
 
     function scheduleTitleUpdate() {
@@ -286,10 +127,6 @@
 
     window.addEventListener("scroll", scheduleTitleUpdate, { passive: true });
     window.addEventListener("resize", scheduleTitleUpdate);
-    document.addEventListener("visibilitychange", syncTitleMotion);
-    reducedTitleMotion.addEventListener("change", syncTitleMotion);
-    titleLink.addEventListener("pointerenter", updateTitleHover);
-    titleLink.addEventListener("pointerleave", updateTitleHover);
     updateTitle();
   </script>
 </body>
