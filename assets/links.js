@@ -55,43 +55,76 @@
     return min + Math.random() * (max - min);
   }
 
+  function randomOffset(amplitude = 1) {
+    const direction = randomBetween(0, Math.PI * 2);
+    const distance = randomBetween(0.018, 0.05) * amplitude;
+    return { x: Math.cos(direction) * distance, y: Math.sin(direction) * distance };
+  }
+
+  function translate(x, y) {
+    return `translate(${x.toFixed(4)}em, ${y.toFixed(4)}em)`;
+  }
+
+  function nextHoverPoint() {
+    return { ...randomOffset(2), duration: randomBetween(42, 138) / 3 };
+  }
+
   function animateLink(link) {
     const idle = link.hasAttribute("data-idle-tremble");
     const animations = new Map();
     let letters;
     let hovered = false;
     let mode = "still";
+    let hoverFrame = null;
 
-    function scheduleTremble(letter, delay) {
-      const continuous = mode === "hover";
-      const amplitude = continuous ? 2 : 1;
+    function scheduleIdleTremble(letter, delay) {
       const shakes = Math.floor(randomBetween(3, 6));
-      const keyframes = [];
+      const rest = { transform: "translate(0, 0)" };
+      const keyframes = [rest];
 
       for (let shake = 0; shake < shakes; shake++) {
-        const direction = randomBetween(0, Math.PI * 2);
-        const distance = randomBetween(0.018, 0.05) * amplitude;
-        const x = (Math.cos(direction) * distance).toFixed(4);
-        const y = (Math.sin(direction) * distance).toFixed(4);
-        keyframes.push({ transform: `translate(${x}em, ${y}em)` });
+        const { x, y } = randomOffset();
+        keyframes.push({ transform: translate(x, y) });
       }
 
-      if (!continuous) keyframes.unshift({ transform: "translate(0, 0)" });
-      keyframes.push(keyframes[0]);
-      const animation = letter.animate(keyframes, {
-        delay,
-        duration: randomBetween(180, 460),
-        iterations: continuous ? Infinity : 1
-      });
-      animation.playbackRate = continuous ? 3 : 1;
+      keyframes.push(rest);
+      const animation = letter.animate(keyframes, { delay, duration: randomBetween(180, 460) });
       animations.set(letter, animation);
 
-      if (continuous) return;
       animation.onfinish = () => {
         if (animations.get(letter) === animation) {
-          scheduleTremble(letter, randomBetween(450, 2550));
+          scheduleIdleTremble(letter, randomBetween(450, 2550));
         }
       };
+    }
+
+    function startHoverTremble() {
+      const start = performance.now();
+      const points = letters.map(letter => ({
+        letter,
+        start,
+        from: { x: 0, y: 0 },
+        to: nextHoverPoint()
+      }));
+
+      function moveLetters(now) {
+        for (const point of points) {
+          point.start = Math.max(point.start, now - 100);
+          while (now - point.start >= point.to.duration) {
+            point.start += point.to.duration;
+            point.from = point.to;
+            point.to = nextHoverPoint();
+          }
+
+          const progress = Math.max(0, (now - point.start) / point.to.duration);
+          const x = point.from.x + (point.to.x - point.from.x) * progress;
+          const y = point.from.y + (point.to.y - point.from.y) * progress;
+          point.letter.style.transform = translate(x, y);
+        }
+        hoverFrame = requestAnimationFrame(moveLetters);
+      }
+
+      hoverFrame = requestAnimationFrame(moveLetters);
     }
 
     function syncMotion() {
@@ -102,11 +135,21 @@
       mode = nextMode;
       for (const animation of animations.values()) animation.cancel();
       animations.clear();
+      if (hoverFrame !== null) {
+        cancelAnimationFrame(hoverFrame);
+        hoverFrame = null;
+        for (const letter of letters) letter.style.removeProperty("transform");
+      }
       if (mode === "still") return;
 
       letters ??= prepareLetters(link);
+      if (!letters.length) return;
+      if (mode === "hover") {
+        startHoverTremble();
+        return;
+      }
       for (const letter of letters) {
-        scheduleTremble(letter, mode === "hover" ? 0 : randomBetween(100, 1900));
+        scheduleIdleTremble(letter, randomBetween(100, 1900));
       }
     }
 
