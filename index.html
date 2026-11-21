@@ -63,13 +63,6 @@
       display: inline-block;
       color: inherit;
       text-decoration: none;
-      text-decoration-thickness: 1px;
-      text-underline-offset: 0.16em;
-    }
-
-    .intro a:hover,
-    .intro a:focus-visible {
-      text-decoration-line: underline;
     }
 
     .intro a:focus-visible {
@@ -83,11 +76,6 @@
 
     .title-letter {
       display: inline-block;
-    }
-
-    .intro a:hover .title-letter,
-    .intro a:focus-visible .title-letter {
-      text-decoration: underline;
     }
 
     .collection {
@@ -181,6 +169,7 @@
     let titleFrame = null;
     let titleProgress = 0;
     let titleLetters;
+    let titlePlaybackRate = 1;
 
     function prepareTitleLetters() {
       const lines = Array.from(titleLink.querySelectorAll(".title-line"));
@@ -237,12 +226,21 @@
 
       keyframes.push(resting);
       const animation = letter.animate(keyframes, { delay, duration: randomBetween(180, 460) });
+      animation.playbackRate = titlePlaybackRate;
       letterAnimations.set(letter, animation);
       animation.onfinish = () => {
         if (letterAnimations.get(letter) === animation) {
           scheduleTremble(letter, randomBetween(450, 2550));
         }
       };
+    }
+
+    function updateTitlePlaybackRate(event) {
+      if (event.pointerType === "touch") return;
+      titlePlaybackRate = event.type === "pointerenter" ? 3 : 1;
+      for (const animation of letterAnimations.values()) {
+        animation.updatePlaybackRate(titlePlaybackRate);
+      }
     }
 
     function syncTitleMotion() {
@@ -277,6 +275,8 @@
     window.addEventListener("resize", scheduleTitleUpdate);
     document.addEventListener("visibilitychange", syncTitleMotion);
     reducedTitleMotion.addEventListener("change", syncTitleMotion);
+    titleLink.addEventListener("pointerenter", updateTitlePlaybackRate);
+    titleLink.addEventListener("pointerleave", updateTitlePlaybackRate);
     updateTitle();
   </script>
 </body>
