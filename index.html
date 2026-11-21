@@ -31,19 +31,23 @@
       pointer-events: none;
     }
 
-    main {
+    .intro {
       display: grid;
-      min-height: inherit;
+      min-height: 100vh;
+      min-height: 100svh;
       place-items: center;
       box-sizing: border-box;
       padding: 32px 20px;
       text-align: center;
     }
 
-    h1 {
+    .intro h1 {
       margin: 0;
       font: 400 clamp(1.5rem, 7.1vw, 5.5rem) / 1.08 Georgia, serif;
       letter-spacing: -0.035em;
+      transform: scale(var(--title-scale, 1));
+      opacity: var(--title-opacity, 1);
+      pointer-events: var(--title-pointer-events, auto);
       text-shadow:
         0 0 2px #112c23,
         0 1px 2px #112c23,
@@ -51,7 +55,11 @@
         0 8px 30px #112c2380;
     }
 
-    h1 a {
+    .intro h1:focus-within {
+      opacity: 1;
+    }
+
+    .intro a {
       display: inline-block;
       color: inherit;
       text-decoration: none;
@@ -59,14 +67,64 @@
       text-underline-offset: 0.16em;
     }
 
-    h1 a:hover,
-    h1 a:focus-visible {
+    .intro a:hover,
+    .intro a:focus-visible {
       text-decoration-line: underline;
     }
 
-    h1 a:focus-visible {
+    .intro a:focus-visible {
       outline: 2px solid #fff;
       outline-offset: 8px;
+    }
+
+    .collection {
+      box-sizing: border-box;
+      width: min(48rem, calc(100% - 2rem));
+      min-height: 55vh;
+      min-height: 55svh;
+      margin: 0 auto clamp(2rem, 8vh, 5rem);
+      padding: clamp(1.5rem, 6vw, 4rem);
+      border: 1px solid #d7efdd50;
+      border-radius: 1.25rem;
+      background: #16372eed;
+      color: #f5fbf5;
+      box-shadow: 0 1.25rem 4rem #112c2345;
+    }
+
+    .collection h2 {
+      margin: 0 0 1.75rem;
+      font: 400 clamp(2rem, 5vw, 3.25rem) / 1.1 Georgia, serif;
+      letter-spacing: -0.03em;
+    }
+
+    .collection ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .collection li {
+      padding: 1.25rem 0;
+      border-top: 1px solid #d7efdd40;
+    }
+
+    .collection h3 {
+      margin: 0 0 0.35rem;
+      font: 400 1.35rem / 1.25 Georgia, serif;
+    }
+
+    .collection p {
+      margin: 0;
+      color: #d2e7d8;
+      font: 1rem / 1.6 system-ui, sans-serif;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .intro h1 {
+        transform: none;
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
   </style>
   <script src="./ink.js" defer></script>
@@ -74,12 +132,53 @@
 <body>
   <canvas id="ink" aria-hidden="true" hidden></canvas>
   <main>
-    <h1>
-      <a href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III">
-        Voyaging through<br>
-        <i>strange eons of thought...</i>
-      </a>
-    </h1>
+    <header class="intro">
+      <h1>
+        <a href="https://en.wikisource.org/wiki/The_Prelude_(Wordsworth)/Book_III">
+          Voyaging through<br>
+          <i>strange eons of thought...</i>
+        </a>
+      </h1>
+    </header>
+
+    <section class="collection" aria-labelledby="collection-title">
+      <h2 id="collection-title">Things I found</h2>
+      <ul role="list">
+        <li>
+          <h3>A line worth keeping</h3>
+          <p>A place for a poem that follows you around after you close the book.</p>
+        </li>
+        <li>
+          <h3>Music for a rainy afternoon</h3>
+          <p>A few slow songs for watching the rain run down the window.</p>
+        </li>
+        <li>
+          <h3>A small experiment</h3>
+          <p>A corner for little browser sketches, like the ink moving behind this page.</p>
+        </li>
+      </ul>
+    </section>
   </main>
+  <script>
+    const intro = document.querySelector(".intro");
+    const title = intro.querySelector("h1");
+    let titleFrame = null;
+
+    function updateTitle() {
+      titleFrame = null;
+      const progress = Math.max(0, Math.min(1, window.scrollY / (intro.offsetHeight * 0.5)));
+      title.style.setProperty("--title-scale", 1 - progress * 0.58);
+      title.style.setProperty("--title-opacity", Math.min(1, (1 - progress) / 0.6));
+      title.style.setProperty("--title-pointer-events", progress === 1 ? "none" : "auto");
+    }
+
+    function scheduleTitleUpdate() {
+      if (titleFrame === null) titleFrame = requestAnimationFrame(updateTitle);
+    }
+
+    window.addEventListener("scroll", scheduleTitleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleTitleUpdate);
+    updateTitle();
+  </script>
 </body>
 </html>
